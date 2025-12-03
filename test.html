@@ -1,1 +1,19 @@
-
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<img id="image" src=""/>
+<div id="title"></div>
+<script>
+grist.ready({columns: ['Link', 'Title'], requiredAccess: 'read table'});
+grist.onRecord(function (record, mappings) {
+  const mapped = grist.mapColumnNames(record);
+  // First check if all columns were mapped.
+  if (mapped) {
+    document.getElementById('image').src = mapped.Link;
+    document.getElementById('title').innerText = mapped.Title;
+    console.log(`Using ${mappings.Link} and ${mappings.Title} columns`);
+  } else {
+    // Helper returned a null value. It means that not all
+    // required columns were mapped.
+    console.error("Please map all columns");
+  }
+});
+</script>
