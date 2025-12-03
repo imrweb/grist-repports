@@ -2,62 +2,67 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <title>Rapport Grist - Dar el Iman</title>
+  <title>Rapport de Mission</title>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-    .header { text-align: center; margin-bottom: 30px; }
-    .header h1 { color: #1a5fb4; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-    th { background: #1a5fb4; color: white; }
-    .rapport { margin-top: 30px; white-space: pre-wrap; background: #f9f9f9; padding: 20px; border-radius: 8px; }
+    body { font-family: system-ui, sans-serif; margin: 40px; line-height: 1.6; }
+    h1, h2 { color: #1a5fb4; text-align: center; }
+    .info { text-align: center; margin: 20px 0; font-size: 1.1em; }
+    table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+    th { background: #1a5fb4; color: white; padding: 12px; }
+    td { padding: 10px; border: 1px solid #ddd; }
+    .rapport { background: #f8f9fa; padding: 20px; border-radius: 8px; white-space: pre-wrap; }
+    @media print { body { margin: 10px; } button { display: none; } }
   </style>
 </head>
 <body>
 
-<div class="header">
   <h1>Rapport de Mission</h1>
-  <h2 id="ref"></h2>
-  <p><strong>Société :</strong> <span id="societe"></span></p>
-  <p><strong>Période :</strong> du <span id="debut"></span> au <span id="fin"></span></p>
-</div>
+  <div class="info">
+    <strong>Référence :</strong> <span id="ref"></span><br>
+    <strong>Société :</strong> <span id="societe"></span><br>
+    <strong>Période :</strong> du <span id="debut"></span> au <span id="fin"></span>
+  </div>
 
-<h3>Détail des lignes concernées</h3>
-<table id="lignes-table">
-  <thead><tr><th>ID Ligne</th></tr></thead>
-  <tbody></tbody>
-</table>
+  <h2>Lignes traitées</h2>
+  <table id="lignes">
+    <thead>
+      <tr><th>ID</th><th>Type de tâche</th><th>Correction AI</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-<div class="rapport">
-  <h3>Rapport</h3>
-  <pre id="rapport-text"></pre>
-</div>
+  <h2>Rapport détaillé</h2>
+  <div class="rapport" id="rapport"></div>
 
-<script>
-  grist.ready();
+  <script>
+    grist.ready({ allowSelectBy: true });
 
-  grist.onRecord(record => {
-    if (!record) return;
+    grist.onRecord(async (record) => {
+      if (!record) return;
 
-    document.getElementById('ref').textContent = record.ref || '';
-    document.getElementById('societe').textContent = record.societe || '';
+      document.getElementById('ref').textContent = record.ref || '';
+      document.getElementById('societe').textContent = record.societe || '';
+      document.getElementById('debut').textContent = new Date(record.date_debut).toLocaleDateString('fr-FR');
+      document.getElementById('fin').textContent = new Date(record.date_fin).toLocaleDateString('fr-FR');
+      document.getElementById('rapport').textContent = record.rapport || 'Aucun contenu';
 
-    const debut = new Date(record.date_debut);
-    const fin = new Date(record.date_fin);
-    document.getElementById('debut').textContent = debut.toLocaleDateString('fr-FR');
-    document.getElementById('fin').textContent = fin.toLocaleDateString('fr-FR');
+      // Récupère les lignes liées via la colonne "lignes" (Reference List)
+      const ligneIds = record.lignes || [];
+      const lignes = ligneIds.length ? await grist.getTable().then(t => t.fetchSelectedRecords(ligneIds)) : [];
 
-    const tbody = document.querySelector('#lignes-table tbody');
-    tbody.innerHTML = '';
-    (record.lignes || []).forEach(id => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${id}</td>`;
-      tbody.appendChild(tr);
+      const tbody = document.querySelector('#lignes tbody');
+      tbody.innerHTML = '';
+      lignes.forEach(l => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${l.id}</td>
+          <td>${l.Type_de_tache || ''}</td>
+          <td>${l.Correction_AI || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
     });
-
-    document.getElementById('rapport-text').textContent = record.rapport || 'Aucun rapport saisi.';
-  });
-</script>
+  </script>
 </body>
 </html>
