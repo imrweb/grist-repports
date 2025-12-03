@@ -12,12 +12,11 @@
     th { background: #1a5fb4; color: white; padding: 12px; }
     td { padding: 10px; border: 1px solid #ddd; }
     .rapport { background: #f8f9fa; padding: 20px; border-radius: 8px; white-space: pre-wrap; }
-    @media print { body { margin: 10px; } button { display: none; } }
   </style>
 </head>
 <body>
 
-  <h1>Rapport de Mission V2</h1>
+  <h1>Rapport de Mission</h1>
   <div class="info">
     <strong>Référence :</strong> <span id="ref"></span><br>
     <strong>Société :</strong> <span id="societe"></span><br>
@@ -26,42 +25,57 @@
 
   <h2>Lignes traitées</h2>
   <table id="lignes">
-    <thead>
-      <tr><th>ID</th><th>Type de tâche</th><th>Correction AI</th></tr>
-    </thead>
+    <thead><tr><th>ID</th><th>Type de tâche</th><th>Correction AI</th></tr></thead>
     <tbody></tbody>
   </table>
 
   <h2>Rapport détaillé</h2>
-  <div class="rapport" id="rapport"></div>
+  <div class="rapport" id="rapport">Chargement…</div>
 
   <script>
-    grist.ready({ allowSelectBy: true });
+    grist.ready({
+      requiredAccess: 'full',           // indispensable pour lire les tables liées
+      allowSelectBy: true
+    });
 
-    grist.onRecord(async (record) => {
+    grist.onRecord(async (record, mappings) => {
       if (!record) return;
 
-      document.getElementById('ref').textContent = record.ref || '';
-      document.getElementById('societe').textContent = record.societe || '';
+      // Infos principales
+      document.getElementById('ref').textContent = record.ref || '-';
+      document.getElementById('societe').textContent = record.societe || '-';
       document.getElementById('debut').textContent = new Date(record.date_debut).toLocaleDateString('fr-FR');
       document.getElementById('fin').textContent = new Date(record.date_fin).toLocaleDateString('fr-FR');
-      document.getElementById('rapport').textContent = record.rapport || 'Aucun contenu';
+      document.getElementById('rapport').textContent = record.rapport || 'Aucun rapport';
 
-      // Récupère les lignes liées via la colonne "lignes" (Reference List)
-      const ligneIds = record.lignes || [];
-      const lignes = ligneIds.length ? await grist.getTable().then(t => t.fetchSelectedRecords(ligneIds)) : [];
-
+      // Récupération des lignes liées (colonne "lignes" = Reference List)
+      const ligneIds = grist.mapColumnNames(record)?.lignes || record.lignes || [];
       const tbody = document.querySelector('#lignes tbody');
-      tbody.innerHTML = '';
-      lignes.forEach(l => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${l.id}</td>
-          <td>${l.Type_de_tache || ''}</td>
-          <td>${l.Correction_AI || ''}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+      tbody.innerHTML = '<tr><td colspan="3">Chargement des lignes…</td></tr>';
+
+      if (!Array.isArray(ligneIds) || ligneIds.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3">Aucune ligne liée</td></tr>';
+        return;
+      }
+
+      try {
+        const table = await grist.getTable();                 // table courante (Rapports)
+        const records = await table.fetchSelectedRecords(ligneIds); // ← la bonne méthode
+        tbody.innerHTML = '';
+
+        records.forEach(r => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${r.id}</td>
+            <td>${r.Type_de_tache || ''}</td>
+            <td>${r.Correction_AI || ''}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="3">Erreur de chargement des lignes</td></tr>';
+        console.error(e);
+      }
     });
   </script>
 </body>
