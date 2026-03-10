@@ -1,18 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>onRecord</title>
-    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-  </head>
-  <body>
-    <p>test II</p>
-    <pre id="readout">Waiting for data...</pre>
-    <script>
-      grist.ready();
-      grist.onRecord(function(record) {
-        document.getElementById('readout').innerHTML = JSON.stringify(record.resume, null, 4);
-      });
-    </script>
-  </body>
+<html>
+<head>
+  <!-- Importation de l'API Grist -->
+  <script src="https://getgrist.com"></script>
+</head>
+<body>
+  <div id="container">
+    <h1>Fiche Client</h1>
+    <p>Nom : <span id="nom">...</span></p>
+    <p>Ville : <span id="ville">...</span></p>
+  </div>
+
+  <script>
+    // Initialisation du widget
+    grist.ready();
+
+    // Fonction appelée à chaque changement de sélection dans Grist
+    grist.onRecord(function(record) {
+      document.getElementById('nom').innerText = record.periode || "N/A";
+      document.getElementById('ville').innerText = record.ref || "N/A";
+    });
+  </script>
+</body>
 </html>
